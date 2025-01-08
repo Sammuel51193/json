@@ -1,0 +1,84 @@
+{
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Obtener Inventario Gstock",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [300, 300],
+      "parameters": {
+        "url": "https://api.gstock.com/v1/inventory",
+        "method": "GET",
+        "responseFormat": "json",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    },
+    {
+      "id": "2",
+      "name": "Calcular Inventario",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [500, 300],
+      "parameters": {
+        "keepOnlySet": false,
+        "values": [
+          {
+            "name": "inventario_calculado",
+            "value": "={{ $json['inventario_inicial'] + $json['entradas'] - $json['salidas'] }}"
+          },
+          {
+            "name": "estado",
+            "value": "={{ $json['inventario_calculado'] < $json['umbral_minimo'] ? 'Alerta' : 'OK' }}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "3",
+      "name": "Guardar en Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 1,
+      "position": [700, 300],
+      "parameters": {
+        "operation": "append",
+        "sheetId": "your-google-sheet-id",
+        "range": "Inventario!A:D",
+        "valueInputMode": "RAW",
+        "fields": [
+          "producto",
+          "inventario_calculado",
+          "estado"
+        ]
+      },
+      "credentials": {
+        "googleApi": "your-google-credentials-id"
+      }
+    }
+  ],
+  "connections": {
+    "Obtener Inventario Gstock": {
+      "main": [
+        [
+          {
+            "node": "Calcular Inventario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular Inventario": {
+      "main": [
+        [
+          {
+            "node": "Guardar en Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
